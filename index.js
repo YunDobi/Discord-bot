@@ -75,6 +75,36 @@ const play = function (guild, song) {
     queue.delete(guild.id);
     return;
   }
+  //dispatcher
+  const dispatcher = serverQueue.connection
+    .play(ytdl(song.url))
+    .on("finish", () => {
+      serverQueue.songs.shift();
+      play(guild, serverQueue.songs[0]);
+    })
+    .on("error", error => console.error(error));
+  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  serverQueue.textChannel.send(`Start playing: **${song.title}**`);
+};
+
+
+const skip = function(message, serverQueue) {
+  if (!message.member.voice.channel)
+    return message.channel.send(
+      "You have to be in a voice channel to stop the music!"
+    );
+  if (!serverQueue)
+    return message.channel.send("There is no song that I could skip!");
+  serverQueue.connection.dispatcher.end();
+};
+
+const stop = function(message, serverQueue) {
+  if (!message.member.voice.channel)
+    return message.channel.send(
+      "You have to be in a voice channel to stop the music!"
+    );
+  serverQueue.songs = [];
+  serverQueue.connection.dispatcher.end();
 };
 
 
@@ -94,15 +124,11 @@ client.on("message", msg => {
 
   if (msg.content.startsWith(`${process.env.prefix}play`)) {
     excute(msg,serverQueue);
-  }
-  else if (msg.content.startsWith(`${process.env.prefix}skip`)) {
-    // skip (msg, serverQueue);
-    msg.channel.send("pressed skip");
+  } else if (msg.content.startsWith(`${process.env.prefix}skip`)) {
+    skip(msg, serverQueue);
     return;
-  }
-  else if (msg.content.startsWith(`${process.env.prefix}stop`)) {
-    // stop (msg, serverQueue);
-    msg.channel.send("pressed stop");
+  } else if (msg.content.startsWith(`${process.env.prefix}stop`)) {
+    stop(msg, serverQueue);
     return;
   } else {
     msg.channel.send('You need to enter a valid command!');
