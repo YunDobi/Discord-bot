@@ -5,6 +5,8 @@ const ytdl = require("ytdl-core");
 dotenv.config();
 const client = new Discord.Client();
 
+const queue = new Map();
+
 const excute = async function(message, serverQueue) {
   // console.log("serverQueue", serverQueue);
   const args = message.content.split(" ");
@@ -25,20 +27,54 @@ const excute = async function(message, serverQueue) {
   }
 
   const songInfo = await ytdl.getInfo(args[1])
-  const songs = {
+  const song = {
     title: songInfo.videoDetails.title,
     url: songInfo.videoDetails.video_url
   };
-  console.log(songs);
+  console.log(song);
 
-  // if (!serverQueue) {
+  if (!serverQueue) {
+    //creating the contract for our queue
+    const queueContruct = {
+      textChannel: message.channel,
+      voiceChannel: voiceChannel,
+      connection: null,
+      songs: [],
+      volume: 5,
+      playing: true,
+    };
+    //setting the queue using our contract
+    queue.set(message.guild.id, queueContruct);
+    // Pushing the song to our songs array
+    queueContruct.songs.push(song);
 
-  // } else {
-  //   serverQueue.songs.push(songs);
-  //   console.log("serverQ.song", serverQueue.songs);
-  //   return message.channel.send(`${songs.title} has added to the queue!`);
+    try {
+    // Here we try to join the voicechat and save our connection into our object.
+      const connection = await voiceChannel.join();
+      queueContruct.connection = connection;
+      // Calling the play function to start a song
+      play(message.guild, queueContruct.songs[0]);
+    } catch (err) {
+    // Printing the error message if the bot fails to join the voicechat
+      console.log(err);
+      queue.delete(message.guild.id);
+      return message.channel.send(err);
+    }
+  } else {
+    serverQueue.songs.push(song);
+    console.log("serverQ.song", serverQueue.songs);
+    return message.channel.send(`${song.title} has added to the queue!`);
 
-  // }
+  }
+};
+
+const play = function (guild, song) {
+  const serverQueue = queue.get(guild.id);
+  if (!song) {
+    serverQueue.voiceChannel.leave();
+    queue.delete(guild.id);
+    return;
+  }
 };
 
 
@@ -52,8 +88,6 @@ client.on("message", msg => {
 
   //if not starting with !, return
   if (!msg.content.startsWith(process.env.prefix)) return;
-
-  const queue = new Map();
 
   //A guild represents an isolated collection of users and channels and is often referred to as a server
   const serverQueue = queue.get(msg.guild.id);
