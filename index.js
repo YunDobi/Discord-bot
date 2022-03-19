@@ -1,5 +1,15 @@
+const express = require('express');
+const app = express();
+
+app.all('/', (req, res) => {
+  res.send("Bot is ready!");
+});
+
+app.listen(8080, () => {
+  console.log(`bot is running on port 8080`);
+});
+
 const Discord = require('discord.js');
-const fetch = require('node-fetch');
 const dotenv = require('dotenv');
 const ytdl = require("ytdl-core");
 dotenv.config();
@@ -135,5 +145,4 @@ client.on("message", msg => {
   }
 
 });
-
 client.login(process.env.Token);
